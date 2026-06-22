@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let sampleData = null; // Lưu các mẫu dữ liệu từ API
     let currentPatientContext = null; // Lưu kết quả ca bệnh phục vụ chat
     let chatHistory = []; // Lưu lịch sử trò chuyện
+    let selectedBatchFile = null; // Lưu đối tượng file cho phần dự đoán hàng loạt
 
     // DOM Elements
     const navButtons = document.querySelectorAll(".nav-btn");
@@ -431,6 +432,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // ----------------- CHẨN ĐOÁN HÀNG LOẠT (UPLOAD CSV) -----------------
+    // Ngăn chặn sự kiện nổi bọt trên file input để tránh lặp vô hạn sự kiện click từ thẻ cha dropzone
+    fileInput.addEventListener("click", (e) => {
+        e.stopPropagation();
+    });
+
     // Drag & Drop events
     dropzone.addEventListener("click", () => fileInput.click());
 
@@ -466,13 +472,14 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Chỉ chấp nhận file định dạng CSV!");
             return;
         }
+        selectedBatchFile = file; // Lưu đối tượng file được chọn/kéo thả
         selectedFileName.textContent = file.name;
         uploadActionsPanel.classList.remove("hidden");
     }
 
     // Gửi file chẩn đoán hàng loạt
     btnPredictBatch.addEventListener("click", async () => {
-        const file = fileInput.files[0] || (fileInput.files.length ? fileInput.files[0] : null);
+        const file = selectedBatchFile;
         if (!file) return;
 
         btnPredictBatch.disabled = true;
