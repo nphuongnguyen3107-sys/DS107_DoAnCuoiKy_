@@ -99,8 +99,8 @@
                 <div class="dashboard-card main-info-card">
                     <div class="card-icon"><i class="fa-solid fa-microscope"></i></div>
                     <div class="card-text">
-                        <h2>Tổng quan về nghiên cứu & Mô hình Stacking Ensemble</h2>
-                        <p>Hệ thống này được xây dựng trên bộ dữ liệu gồm <strong>2,404 mẫu vi khuẩn</strong> với <strong>310 đặc trưng kháng thuốc</strong> (bao gồm 210 đặc trưng nhị phân đại diện cho các gen kháng thuốc AMR và 100 đặc trưng liên tục đại diện cho số lượng k-mer). Mô hình sử dụng phương pháp Ensemble tích hợp (Stacking) giữa <strong>XGBoost, Random Forest và LightGBM</strong> với bộ phân lớp meta Logistic Regression để đưa ra quyết định chẩn đoán chính xác nhất.</p>
+                        <h2>Tổng quan về nghiên cứu & Mô hình XGBoost</h2>
+                        <p>Hệ thống này được xây dựng trên bộ dữ liệu gồm <strong>2,404 mẫu vi khuẩn</strong> với <strong>310 đặc trưng kháng thuốc</strong> (bao gồm 210 đặc trưng nhị phân đại diện cho các gen kháng thuốc AMR và 100 đặc trưng liên tục đại diện cho số lượng k-mer). Mô hình sử dụng thuật toán học máy <strong>XGBoost</strong> được tối ưu hóa hyperparameter bằng Optuna cùng kỹ thuật giảm chiều đặc trưng RFE và cân bằng dữ liệu SMOTE để đưa ra quyết định chẩn đoán chính xác nhất.</p>
                     </div>
                 </div>
 
@@ -147,8 +147,8 @@
 
                         <div class="flowchart-step active-step">
                             <div class="step-num"><i class="fa-solid fa-check"></i></div>
-                            <div class="step-label">Stacking Ensemble</div>
-                            <div class="step-desc">XGBoost + RF + LGBM tổng hợp bởi Logistic Reg.</div>
+                            <div class="step-label">Mô hình XGBoost</div>
+                            <div class="step-desc">XGBoost Pipeline tối ưu hóa bằng Optuna</div>
                         </div>
                     </div>
                 </div>
@@ -207,7 +207,7 @@
                 <!-- Model Comparison & ML Reasoning -->
                 <div class="dashboard-card" style="margin-top: 1.5rem;">
                     <h3><i class="fa-solid fa-code-compare"></i> Đánh giá So sánh & Lập luận Thiết kế Mô hình</h3>
-                    <p class="subtitle">So sánh kết quả kiểm định chéo (Cross-Validation) giữa các tiếp cận để minh chứng hiệu quả của hệ thống Stacking Ensemble.</p>
+                    <p class="subtitle">So sánh kết quả kiểm định chéo (Cross-Validation) giữa các tiếp cận để minh chứng hiệu quả của hệ thống mô hình XGBoost.</p>
                     
                     <div class="table-responsive" style="margin-bottom: 1.5rem;">
                         <table class="results-table">
@@ -236,11 +236,11 @@
                                     <td>Cây quyết định đơn lẻ, không xử lý mất cân bằng lớp (bỏ sót nhiều ca kháng)</td>
                                 </tr>
                                 <tr style="background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--primary);">
-                                    <td><strong>Stacking Ensemble (Đề xuất)</strong></td>
+                                    <td><strong>XGBoost Pipeline (Đề xuất)</strong></td>
                                     <td><span style="color: #34d399; font-weight: 700;">83.56%</span></td>
                                     <td><span style="color: #34d399; font-weight: 700;">81.89%</span></td>
                                     <td><strong>89 đặc trưng lọc (RFE)</strong></td>
-                                    <td><strong>Tích hợp XGBoost + RF + LGBM + SMOTE + Meta Learner (Tối ưu nhất)</strong></td>
+                                    <td><strong>Mô hình XGBoost tối ưu bằng Optuna kết hợp SMOTE (Tối ưu nhất)</strong></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -249,9 +249,9 @@
                     <div style="background: rgba(255, 255, 255, 0.02); border-radius: 12px; padding: 1.25rem; border: 1px dashed var(--glass-border);">
                         <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #a5b4fc;"><i class="fa-solid fa-lightbulb"></i> Tư duy thiết kế hệ thống (ML Reasoning)</h4>
                         <ul style="padding-left: 1.25rem; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6;">
-                            <li><strong>Giải quyết mất cân bằng lớp (SMOTE):</strong> Dữ liệu gốc có tỷ lệ kháng thuốc rất thấp. Việc thêm SMOTE giúp mô hình Stacking tăng mạnh Recall cho lớp Kháng thuốc từ <strong style="color: #fbbf24;">55.63%</strong> (Simple DT) lên <strong style="color: #34d399;">81.89%</strong>, hạn chế tối đa việc bác sĩ kê nhầm thuốc cho bệnh nhân đã kháng thuốc.</li>
-                            <li><strong>Giảm thiểu chi phí sinh học (RFE):</strong> Nhờ bộ lọc đặc trưng RFE, mô hình Stacking chỉ cần giải trình tự <strong>89 đặc trưng gen/k-mer quan trọng nhất</strong> (thay vì 310 đặc trưng gốc) mà vẫn giữ vững độ chính xác vượt trội. Điều này giúp tối ưu hóa chi phí xét nghiệm lâm sàng tại bệnh viện.</li>
-                            <li><strong>Độ tin cậy của cấu trúc Stacking:</strong> Sự kết hợp giữa các mô hình mạnh (XGBoost, RF, LGBM) với bộ phân lớp Meta Logistic Regression giúp giảm phương sai, tăng tính ổn định của dự đoán trên dữ liệu bệnh nhân thực tế ngoài tập huấn luyện.</li>
+                            <li><strong>Giải quyết mất cân bằng lớp (SMOTE):</strong> Dữ liệu gốc có tỷ lệ kháng thuốc rất thấp. Việc thêm SMOTE giúp mô hình XGBoost tăng mạnh Recall cho lớp Kháng thuốc từ <strong style="color: #fbbf24;">55.63%</strong> (Simple DT) lên <strong style="color: #34d399;">81.89%</strong>, hạn chế tối đa việc bác sĩ kê nhầm thuốc cho bệnh nhân đã kháng thuốc.</li>
+                            <li><strong>Giảm thiểu chi phí sinh học (RFE):</strong> Nhờ bộ lọc đặc trưng RFE, mô hình XGBoost chỉ cần giải trình tự <strong>89 đặc trưng gen/k-mer quan trọng nhất</strong> (thay vì 310 đặc trưng gốc) mà vẫn giữ vững độ chính xác vượt trội. Điều này giúp tối ưu hóa chi phí xét nghiệm lâm sàng tại bệnh viện.</li>
+                            <li><strong>Hiệu năng của mô hình XGBoost:</strong> Thuật toán tăng cường gradient cây quyết định (XGBoost) giúp mô hình có khả năng học các mối tương quan phi tuyến tính phức tạp giữa các gen, tăng tính ổn định của dự đoán trên dữ liệu bệnh nhân thực tế ngoài tập huấn luyện.</li>
                         </ul>
                     </div>
                 </div>

@@ -190,7 +190,7 @@ GENE_DB = {
 
     # --- THUẬT NGỮ HỌC MÁY (MACHINE LEARNING) & ĐỒ ÁN ---
     "shap": "SHAP (Shapley Additive exPlanations): Phương pháp định lượng mức độ đóng góp (tích cực hay tiêu cực) của từng đặc trưng gen/k-mer vào quyết định dự đoán kháng thuốc của mô hình.",
-    "stacking": "Stacking Ensemble: Kỹ thuật học máy kết hợp nhiều mô hình nền tảng khác nhau (Random Forest, XGBoost, SVM...) để tối ưu hóa độ chính xác và độ tin cậy của chẩn đoán.",
+    "stacking": "Mô hình đề xuất (XGBoost): Thuật toán học máy dựa trên Gradient Boosting cây quyết định, tối ưu hóa qua các bộ lọc RFE và SMOTE nhằm tối đa hóa độ chính xác chẩn đoán kháng thuốc.",
     "k-mer": "k-mer: Đoạn con nucleotide độ dài k cố định được trích xuất từ chuỗi gen vi khuẩn, đóng vai trò làm đặc trưng đầu vào cho các thuật toán học máy dự đoán AMR.",
     "random forest": "Random Forest (Rừng ngẫu nhiên): Thuật toán học máy dựa trên tập hợp nhiều cây quyết định hoạt động độc lập, dự đoán bằng cách bỏ phiếu số đông.",
     "xgboost": "XGBoost (Extreme Gradient Boosting): Thuật toán học máy dựa trên Gradient Boosting hiệu năng cao, thường đứng đầu về tốc độ và độ chính xác trên tập dữ liệu bảng sinh học.",
@@ -524,7 +524,7 @@ def generate_local_chat_reply(message, outcome, probability, top_features):
                "  * **Đặc trưng ban đầu:** 310 đặc trưng (210 đặc trưng gen kháng thuốc AMR và 100 đặc trưng liên tục đại diện cho mật độ k-mer nền).\n" \
                "  * **Đặc trưng rút gọn (sau RFE):** Rút gọn xuống **89 đặc trưng gen/k-mer quan trọng nhất** giúp tối ưu hóa chi phí giải trình tự gen.\n" \
                "- 🤖 **Thuật toán học máy đề xuất:**\n" \
-               "  * **Stacking Ensemble (Xếp chồng):** Tích hợp quyết định từ 3 mô hình nền tảng gồm **XGBoost, Random Forest, và LightGBM**, tổng hợp bởi mô hình Meta **Logistic Regression** để tối ưu hóa độ ổn định dự đoán.\n" \
+               "  * **Mô hình XGBoost (Đề xuất):** Sử dụng thuật toán tăng cường gradient cây quyết định (XGBoost) được tối ưu hóa hyperparameter bằng Optuna, kết hợp kỹ thuật giảm chiều RFE và cân bằng dữ liệu SMOTE để tối đa hóa độ ổn định dự đoán.\n" \
                "- 📈 **Chỉ số đánh giá mô hình (Performance Metrics):**\n" \
                "  * **Độ chính xác (Accuracy):** **80.00%** trên tập test.\n" \
                "  * **ROC-AUC:** **89.90%** và **PR-AUC:** **88.60%**.\n" \
@@ -539,7 +539,7 @@ def generate_local_chat_reply(message, outcome, probability, top_features):
                "  * Sự kết hợp đồng thời của gen sinh ESBL (`blaCTX-M-15`) và đột biến đích Fluoroquinolone (`gyrA_S83L`) tạo ra kiểu hình đa kháng cực kỳ nguy hiểm. Mức độ nguy hại lâm sàng tăng vọt do hầu như tất cả các kháng sinh Cephalosporin thế hệ 3/4 và Quinolone thông thường đều mất tác dụng.\n" \
                "  * Nếu xuất hiện thêm cơ chế bơm đẩy chủ động (efflux pump như `floR`, `tet`), vi khuẩn có thể tự động đẩy bớt kháng sinh ra ngoài, làm giảm nồng độ thuốc nội bào và thúc đẩy tính kháng thuốc chéo.\n" \
                "- 🔬 **Nồng độ MIC & Kiểm chứng cận lâm sàng:**\n" \
-               "  * Mô hình Stacking hiện tại chỉ phân loại nhị phân (Kháng/Nhạy) dựa trên gen. Hệ thống **không** dự đoán trực tiếp giá trị MIC (Nồng độ ức chế tối thiểu) bằng số.\n" \
+               "  * Mô hình XGBoost hiện tại chỉ phân loại nhị phân (Kháng/Nhạy) dựa trên gen. Hệ thống **không** dự đoán trực tiếp giá trị MIC (Nồng độ ức chế tối thiểu) bằng số.\n" \
                "  * Bác sĩ nên chỉ định thêm **Kháng sinh đồ đĩa giấy khuếch tán (Kirby-Bauer)** hoặc máy tự động (như Vitek 2) để xác định chính xác MIC thực tế. Nếu nghi ngờ nhiễm khuẩn huyết, cần chỉ định **Cấy máu** lập tức.\n" \
                "- 🤰 **Ca bệnh phức tạp (Mang thai + Dị ứng Penicillin + Kháng parC):**\n" \
                "  * Do mẫu kháng Fluoroquinolone (parC đột biến) => Không dùng Quinolone.\n" \
@@ -560,7 +560,7 @@ def generate_local_chat_reply(message, outcome, probability, top_features):
                "- 📁 **Đối tượng huấn luyện & Giới hạn dữ liệu:**\n" \
                "  * Mô hình được huấn luyện tối ưu nhất trên các loài **vi khuẩn Gram âm** (đặc biệt là họ *Enterobacteriaceae* như *E. coli, Klebsiella pneumoniae*).\n" \
                "  * **Cảnh báo:** Độ tin cậy của mô hình sẽ **giảm mạnh** nếu đưa vào mẫu vi khuẩn Gram dương do sự khác biệt hoàn toàn về cấu trúc vách tế bào và cơ chế kháng thuốc.\n" \
-               "  * **anomaly detection (Cảnh báo ngoại lai):** Hiện tại mô hình Stacking không có bộ lọc phát hiện dị thường. Nếu đưa vào một gen hoàn toàn mới hoặc loài vi khuẩn không phù hợp, mô hình vẫn ép đưa ra dự đoán nhị phân (khó đảm bảo độ tin cậy).\n" \
+               "  * **anomaly detection (Cảnh báo ngoại lai):** Hiện tại mô hình XGBoost không có bộ lọc phát hiện dị thường. Nếu đưa vào một gen hoàn toàn mới hoặc loài vi khuẩn không phù hợp, mô hình vẫn ép đưa ra dự đoán nhị phân (khó đảm bảo độ tin cậy).\n" \
                "- 🧬 **Tại sao gen tet(A) có SHAP âm ở một số mẫu cụ thể (ví dụ mẫu ID 1042)?**\n" \
                "  * SHAP đo lường đóng góp tương tác giữa các đặc trưng. Mặc dù `tet(A)` là gen kháng Tetracycline, nhưng nếu trong mẫu đó thiếu các gen đồng tác nhân hoặc mật độ k-mer nền thể hiện kiểu gen của một chủng nhạy cảm yếu, sự đóng góp cục bộ của đặc trưng này có thể bị bù trừ bởi các yếu tố khác, tạo ra giá trị SHAP âm."
 
@@ -579,7 +579,7 @@ def generate_local_chat_reply(message, outcome, probability, top_features):
     # 4. Câu hỏi về SHAP/giải thích mô hình
     if any(k in msg_lower for k in ["shap", "biểu đồ", "đồ thị", "giải thích"]):
         return "### 📊 Giải thích về SHAP (Shapley Additive exPlanations)\n\n" \
-               "- **SHAP** đo lường mức độ đóng góp của từng gen / k-mer vào quyết định của mô hình Stacking Ensemble.\n" \
+               "- **SHAP** đo lường mức độ đóng góp của từng gen / k-mer vào quyết định của mô hình XGBoost.\n" \
                "- **Cột màu Đỏ (SHAP > 0):** Đại diện cho các yếu tố thúc đẩy mẫu vi khuẩn trở nên **Kháng thuốc**.\n" \
                "- **Cột màu Xanh (SHAP < 0):** Đại diện cho các yếu tố giữ mẫu vi khuẩn ở trạng thái **Nhạy cảm**.\n" \
                "- Độ dài của cột tỉ lệ thuận với độ mạnh của tác động."
@@ -629,7 +629,7 @@ def generate_ai_report(outcome, probability, top_features, threshold):
     
     Hãy viết một báo cáo phân tích chuyên khoa ngắn gọn, chuyên nghiệp bằng tiếng Việt cho bác sĩ điều trị dựa trên kết quả chẩn đoán kháng kháng sinh (AMR) sau:
     
-    - Kết luận chẩn đoán của mô hình Stacking: {outcome_vietnamese} (Xác suất kháng thuốc: {probability * 100:.2f}%, Ngưỡng quyết định: {threshold:.3f})
+    - Kết luận chẩn đoán của mô hình XGBoost: {outcome_vietnamese} (Xác suất kháng thuốc: {probability * 100:.2f}%, Ngưỡng quyết định: {threshold:.3f})
     - Top các đặc trưng gen kháng thuốc/k-mer ảnh hưởng lớn nhất lấy từ giải thích SHAP:
     {json.dumps(top_features, indent=2)}
     {rag_context}
@@ -1023,7 +1023,7 @@ def chat():
     system_instruction = f"""
     Bạn là một Cố vấn Lâm sàng AI chuyên ngành Vi sinh lâm sàng và bệnh truyền nhiễm, được cung cấp tài liệu chính thức: "Hướng dẫn sử dụng kháng sinh" của Bộ Y tế Việt Nam để làm nguồn tham chiếu chính.
     Bạn đang trao đổi với bác sĩ điều trị về một ca bệnh có kết quả xét nghiệm AMR như sau:
-    - Chẩn đoán của mô hình Stacking: {outcome_vietnamese} (Xác suất: {prob * 100:.2f}%)
+    - Chẩn đoán của mô hình XGBoost: {outcome_vietnamese} (Xác suất: {prob * 100:.2f}%)
     - Top đặc trưng kháng thuốc ảnh hưởng lớn nhất lấy từ giải thích SHAP: {json.dumps(top_features)}
     {rag_context}
     
