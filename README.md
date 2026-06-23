@@ -22,7 +22,8 @@ Dự án được sắp xếp và tổ chức lại một cách khoa học theo 
 │   ├── data_loading.py              # Đọc dữ liệu đầu vào, phân tách Train/Test
 │   ├── training.py                  # Logic tối ưu hóa bằng Optuna và xây dựng Stacking/XGBoost
 │   ├── inference.py                 # Hàm dự đoán đơn mẫu, xuất kết quả kiểu hình
-│   └── explain.py                   # Tích hợp SHAP sinh giá trị đóng góp đặc trưng cục bộ
+│   ├── explain.py                   # Tích hợp SHAP sinh giá trị đóng góp đặc trưng cục bộ
+│   └── reporting.py                 # Định dạng bảng siêu tham số, so sánh CV và lý do lựa chọn mô hình
 ├── preprocessing/                   # Thư mục tiền xử lý gen và k-mer (đã phẳng hóa)
 │   ├── data/                        # Dữ liệu raw và processed trung gian của tiền xử lý
 │   │   ├── raw/BVBRC_genome_amr.csv # Metadata kiểu hình từ BV-BRC
@@ -39,12 +40,14 @@ Dự án được sắp xếp và tổ chức lại một cách khoa học theo 
 ├── templates/                       # Thư mục chứa giao diện HTML
 │   └── index.html                   # Giao diện Dashboard chính (HTML5 + Tailwind-free)
 ├── uploads/                         # Thư mục tạm nhận file CSV upload hàng loạt
-├── run_web_app.py                           # Điểm chạy Web App Flask chính
+├── huong_dan_su_dung_khang_sinh_708.pdf # Tài liệu Hướng dẫn sử dụng kháng sinh của Bộ Y tế (333 trang)
+├── bao_cao_do_an_amr.pdf            # Báo cáo đồ án tóm tắt của nhóm (9 trang)
+├── run_web_app.py                   # Điểm chạy Web App Flask chính
 ├── run_training.py                  # Script huấn luyện và tối ưu mô hình tổng thể
 ├── run_evaluation.py                # Script chạy 4 phân tích đánh giá sâu mô hình
 ├── .env                             # Cấu hình biến môi trường và API Keys (Gemini)
 ├── .env.example                     # Mẫu cấu hình biến môi trường
-├── .gitignore                       # Cấu hình bỏ qua các file nặng/nhạy cảm trong Git
+├── .gitignore                       # Cấu hình bỏ qua các tệp nặng/nhạy cảm trong Git
 └── requirements.txt                 # Danh sách các thư viện Python cần thiết
 ```
 
