@@ -71,14 +71,16 @@ Hệ thống được thiết kế khép kín nhằm chống rò rỉ dữ liệ
 1. **Median Imputer**: Xử lý dữ liệu k-mer khuyết bằng phương pháp điền trung vị.
 2. **Variance Threshold**: Loại bỏ các đặc trưng tĩnh hoặc biến động cực thấp ($< 0.01$).
 3. **RFE (Recursive Feature Elimination)**: Lọc giảm chiều đặc trưng, chỉ giữ lại **84 đặc trưng gen/k-mer quan trọng nhất** có khả năng phân biệt cao nhằm tối ưu chi phí giải trình tự gen.
-4. **SMOTE (Synthetic Minority Over-sampling Technique)**: Cân bằng tỉ lệ mẫu kháng thuốc (thiểu số), giúp tăng mạnh Recall lớp kháng từ **55.63% lên 80.82%**.
+4. **SMOTE (Synthetic Minority Over-sampling Technique)**: Cân bằng tỉ lệ mẫu kháng thuốc (thiểu số), giúp tăng khả năng nhận diện kháng thuốc (đạt Recall(R) 79.85% ở quá trình cross-validation).
 5. **XGBoost Classifier**: Mô hình phân loại tối ưu sau khi chạy tìm kiếm siêu tham số bằng Optuna qua 50 thử nghiệm.
-6. **Decision Threshold (0.521)**: Ngưỡng ra quyết định được tinh chỉnh out-of-fold nhằm đảm bảo độ nhạy lâm sàng tối thiểu (Recall lớp kháng $\ge 80\%$).
+6. **Decision Threshold (0.479)**: Ngưỡng ra quyết định được tinh chỉnh out-of-fold nhằm đảm bảo độ nhạy lâm sàng tối ưu (ưu tiên tối đa hóa Recall lớp kháng).
 
 ### Chỉ số hiệu năng trên tập kiểm thử (Test Set)
-* **Độ chính xác (Accuracy)**: **83.00%**
-* **ROC-AUC**: **90.29%**
-* **PR-AUC**: **89.05%**
+* **Độ chính xác (Accuracy)**: **81.00%**
+* **Macro F1-score**: **81.00%**
+* **Recall (Resistant)**: **77.00%**
+* **ROC-AUC**: **90.09%**
+* **PR-AUC (Average Precision)**: **88.80%**
 
 ---
 
