@@ -1,11 +1,11 @@
-# 🔬 E. coli Ciprofloxacin AMR Analyzer & Explainer
+# E. coli Ciprofloxacin AMR Analyzer & Explainer
 ## Hệ Thống Dự Đoán & Giải Thích Kháng Thuốc Ciprofloxacin ở Vi Khuẩn *Escherichia coli*
 
 Dự án đồ án môn DS107 (Tư duy Khoa học dữ liệu) xây dựng hệ thống học máy khép kín dự đoán kiểu hình kháng thuốc kháng sinh **Ciprofloxacin** (nhóm Fluoroquinolone) của vi khuẩn *E. coli* dựa trên dữ liệu hệ gen (gen kháng thuốc và mật độ k-mer) kết hợp các kỹ thuật giải thích mô hình (SHAP) phục vụ nghiên cứu sinh tin học và vi sinh lâm sàng.
 
 ---
 
-## 📂 Cấu Trúc Dự Án
+## Cấu Trúc Dự Án
 
 Dự án được sắp xếp và tổ chức lại một cách khoa học theo cấu trúc chuẩn hóa dưới đây:
 
@@ -53,7 +53,7 @@ Dự án được sắp xếp và tổ chức lại một cách khoa học theo 
 
 ---
 
-## 🛠️ Công Nghệ Sử Dụng
+## Công Nghệ Sử Dụng
 
 * **Ngôn ngữ chính**: Python (v3.10+)
 * **Học máy & Tối ưu hóa**: scikit-learn, XGBoost, LightGBM, Imbalanced-learn (SMOTE), Optuna
@@ -64,7 +64,7 @@ Dự án được sắp xếp và tổ chức lại một cách khoa học theo 
 
 ---
 
-## 📈 Quy Trình Pipeline Học Máy Đề Xuất (XGBoost Pipeline)
+## Quy Trình Pipeline Học Máy Đề Xuất (XGBoost Pipeline)
 
 Hệ thống được thiết kế khép kín nhằm chống rò rỉ dữ liệu (data leakage) trong quá trình đánh giá:
 
@@ -84,7 +84,7 @@ Hệ thống được thiết kế khép kín nhằm chống rò rỉ dữ liệ
 
 ---
 
-## 🚀 Hướng Dẫn Cài Đặt & Chạy Hệ Thống
+## Hướng Dẫn Cài Đặt & Chạy Hệ Thống
 
 ### 1. Chuẩn bị môi trường Python
 Yêu cầu Python từ 3.10 trở lên. Cài đặt môi trường ảo và cài thư viện:
@@ -132,7 +132,7 @@ Truy cập ứng dụng tại địa chỉ: `http://127.0.0.1:5000` trên trình
 
 ---
 
-## 🖥️ Các Tính Năng Chính Của Web App
+## Các Tính Năng Chính Của Web App
 
 1. **Dashboard Tổng Quan**: Hiển thị các chỉ số chất lượng mô hình (ROC-AUC, PR-AUC, Accuracy) cùng sơ đồ quy trình ML Pipeline và bảng so sánh các phương pháp (Baseline vs. Stacking vs. XGBoost).
 2. **Chẩn Đoán Đơn Chủng (Single Diagnostic)**: 
