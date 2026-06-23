@@ -54,7 +54,7 @@ def load_env_values():
         import base64
         encoded_key = "QVEuQWI4Uk42TFM4dmhhcUZrLWtCQzNCZmE2TENtcHBINlF1NklBcTV3NVItdkVRVEtrR2c="
         os.environ['GEMINI_API_KEY'] = base64.b64decode(encoded_key).decode('utf-8')
-        os.environ['GEMINI_MODEL'] = 'gemini-2.5-flash-lite'
+        os.environ['GEMINI_MODEL'] = 'gemini-2.5-flash'
 
 # Nạp môi trường lần đầu khi start server
 load_env_values()
@@ -614,7 +614,7 @@ def generate_ai_report(outcome, probability, top_features, threshold):
     """Gọi API của Gemini dựa trên API Key được cấu hình trong file .env."""
     load_env_values()
     gemini_key = os.environ.get('GEMINI_API_KEY')
-    gemini_model = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash-lite')
+    gemini_model = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
 
     outcome_vietnamese = "KHÁNG THUỐC (Resistant)" if outcome == "Resistant" else "NHẠY CẢM (Susceptible)"
     
@@ -684,7 +684,7 @@ def call_ai_chat(system_instruction, history, user_message):
     """Gửi lịch sử hội thoại và system instruction tới Gemini API."""
     load_env_values()
     gemini_key = os.environ.get('GEMINI_API_KEY')
-    gemini_model = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash-lite')
+    gemini_model = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
 
     if not gemini_key or not gemini_key.strip() or gemini_key.startswith("YOUR_"):
         raise ValueError("GEMINI_API_KEY is not configured in .env")

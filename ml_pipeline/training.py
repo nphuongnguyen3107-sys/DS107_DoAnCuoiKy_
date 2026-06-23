@@ -23,6 +23,12 @@ from .config import (
     cv_strategy, SCORING, soft_objective, report_cv,
 )
 from .inference import find_best_threshold_inner
+from .reporting import (
+    format_hyperparams_table,
+    format_cv_comparison,
+    format_threshold_summary,
+    format_final_selection_rationale,
+)
 
 
 # ── Pipeline builders ────────────────────────────────────────────────────────
@@ -186,6 +192,7 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     Mỗi item là (pipeline_fitted, best_params_dict, threshold)
     """
     import optuna
+    from sklearn.metrics import recall_score, accuracy_score
 
     print("=" * 60)
     print("🔍 OPTUNA TUNING — 3 MODELS")
@@ -204,7 +211,7 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
             sampler=optuna.samplers.TPESampler(seed=RANDOM_STATE),
         )
         study.optimize(
-            lambda t: objective(t, X_train, y_train),  # FIX LỖI 3: truyền data vào
+            lambda t: objective(t, X_train, y_train),
             n_trials=n_trials,
             show_progress_bar=True,
         )
@@ -215,20 +222,108 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
         smote = study.best_params["smote_strategy"]
         k_feats = study.best_params["k_features"]
         print(f" Best trial: {study.best_trial.number} | value: {study.best_value:.4f}")
-        best_configs[name] = (best_params, k_feats, smote)  # (params, k_feats, smote)
+        # Lưu cả filtered params (dùng để build pipeline) và full params (dùng cho reporting)
+        best_configs[name] = {
+            'pipeline_params': best_params,
+            'full_params': study.best_params.copy(),
+            'k_features': k_feats,
+            'smote_strategy': smote
+        }
 
-    # FIX LỖI 1: unpack đúng thứ tự — (params, k_features, smote_strategy)
-    pipe_xgb = build_xgb_pipeline(*best_configs["XGBoost"])
-    pipe_rf  = build_rf_pipeline(*best_configs["RandomForest"])
-    pipe_lgbm = build_lgbm_pipeline(*best_configs["LightGBM"])
+    # ── IN FULL HYPERPARAMETER TABLE ─────────────────────────────────────────────
+    print(format_hyperparams_table(best_configs))
 
-    print("\n📊 Cross-Validation...")
-    for name, pipe in [("XGBoost", pipe_xgb), ("RF", pipe_rf), ("LGBM", pipe_lgbm)]:
-        cv_res = cross_validate(pipe, X_train, y_train, cv=cv_strategy, scoring=SCORING, n_jobs=-1)
-        report_cv(name, cv_res)
+    # FIX LỖI 1: build pipelines từ config dict
+    cfg_xgb = best_configs["XGBoost"]
+    cfg_rf = best_configs["RandomForest"]
+    cfg_lgbm = best_configs["LightGBM"]
 
-    # FIX LỖI 2: fit trên toàn bộ data trước khi trả về
-    print("\n Fitting trên toàn bộ X_train...")
+    pipe_xgb = build_xgb_pipeline(cfg_xgb['pipeline_params'], cfg_xgb['k_features'], cfg_xgb['smote_strategy'])
+    pipe_rf  = build_rf_pipeline(cfg_rf['pipeline_params'], cfg_rf['k_features'], cfg_rf['smote_strategy'])
+    pipe_lgbm = build_lgbm_pipeline(cfg_lgbm['pipeline_params'], cfg_lgbm['k_features'], cfg_lgbm['smote_strategy'])
+
+    # ── THÊM STACKING CONFIG CHO REPORTING ───────────────────────────────────────
+    # Stacking không có Optuna params, nhưng có final_estimator config
+    stacking_config = {
+        'pipeline_params': {},  # Stacking không có classifier params riêng
+        'full_params': {
+            'ensemble_type': 'StackingClassifier',
+            'final_estimator': 'LogisticRegression',
+            'final_estimator.max_iter': 2000,
+            'final_estimator.class_weight': 'balanced',
+            'final_estimator.solver': 'lbfgs',
+            'final_estimator.random_state': RANDOM_STATE,
+            'cv': 'StratifiedKFold',
+            'cv.n_splits': 3,
+            'cv.shuffle': True,
+            'cv.random_state': RANDOM_STATE,
+            'passthrough': False,
+            'n_jobs': 1,
+            'base_estimators': ['XGBoost', 'RandomForest', 'LightGBM']
+        },
+        'k_features': 'N/A (ensemble uses all base features)',
+        'smote_strategy': 'N/A (each base has own SMOTE)'
+    }
+    best_configs['Stacking'] = stacking_config
+
+    # ── CROSS-VALIDATION WITH FULL METRICS ─────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("📊 CROSS-VALIDATION METRICS (5-fold)")
+    print("=" * 60)
+
+    cv_metrics = {}
+    cv_models = {
+        "XGBoost": pipe_xgb,
+        "RandomForest": pipe_rf,
+        "LightGBM": pipe_lgbm,
+    }
+
+    for name, pipe in cv_models.items():
+        # Cross-validate with all needed scorers
+        cv_res = cross_validate(
+            pipe, X_train, y_train,
+            cv=cv_strategy,
+            scoring={
+                'macro_f1': SCORING['macro_f1'],
+                'recall_R': SCORING['recall_R'],
+            },
+            n_jobs=-1,
+            return_estimator=True  # Keep estimators for OOF predictions
+        )
+
+        # Get OOF predictions for additional metrics (recall_S, accuracy)
+        from sklearn.model_selection import cross_val_predict
+        y_pred_oof = cross_val_predict(pipe, X_train, y_train, cv=cv_strategy, n_jobs=-1)
+
+        # Compute additional metrics from OOF
+        recall_S = recall_score(y_train, y_pred_oof, pos_label=0)
+        accuracy = accuracy_score(y_train, y_pred_oof)
+
+        cv_metrics[name] = {
+            'macro_f1': cv_res['test_macro_f1'].mean(),
+            'recall_R': cv_res['test_recall_R'].mean(),
+            'recall_S': recall_S,
+            'accuracy': accuracy,
+        }
+
+        # Print per-model CV results (compact)
+        mf1 = cv_metrics[name]['macro_f1']
+        rR = cv_metrics[name]['recall_R']
+        rS = cv_metrics[name]['recall_S']
+        acc = cv_metrics[name]['accuracy']
+        print(f"\n📊 {name}:")
+        print(f"   Macro F1  : {mf1*100:6.2f}%")
+        print(f"   Recall(R) : {rR*100:6.2f}%")
+        print(f"   Recall(S) : {rS*100:6.2f}%")
+        print(f"   Accuracy  : {acc*100:6.2f}%")
+
+    # ── CV COMPARISON WITH TRADE-OFF ANALYSIS ───────────────────────────────────
+    print(format_cv_comparison(cv_metrics))
+
+    # FIX LỖI 2: fit trên toàn bộ data
+    print("\n" + "=" * 60)
+    print("🎯 FITTING MODELS ON FULL TRAINING SET")
+    print("=" * 60)
     pipe_xgb.fit(X_train, y_train)
     pipe_rf.fit(X_train, y_train)
     pipe_lgbm.fit(X_train, y_train)
@@ -238,15 +333,62 @@ def train_all_models(X_train, y_train, n_trials: int = N_TRIALS):
     stacking = build_stacking_ensemble(pipe_xgb, pipe_rf, pipe_lgbm)
     stacking.fit(X_train, y_train)
 
-    # Tìm threshold cho từng model
-    th_xgb  = find_optimal_threshold(pipe_xgb, X_train, y_train)
-    th_rf   = find_optimal_threshold(pipe_rf, X_train, y_train)
-    th_lgbm = find_optimal_threshold(pipe_lgbm, X_train, y_train)
-    th_ens  = find_optimal_threshold(stacking, X_train, y_train)
+    # ── THRESHOLD TUNING WITH OOF METRICS ───────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("🎯 THRESHOLD TUNING (OOF)")
+    print("=" * 60)
+
+    thresholds = {}
+    oof_scores = {}  # For threshold summary (macro_f1, recall_R from OOF)
+
+    for name, pipe in {
+        "XGBoost": pipe_xgb,
+        "RandomForest": pipe_rf,
+        "LightGBM": pipe_lgbm,
+        "Stacking": stacking
+    }.items():
+        print(f"\n── {name} ──")
+        th = find_optimal_threshold(pipe, X_train, y_train)
+
+        # Get OOF probs for this model to compute metrics at tuned threshold
+        from sklearn.model_selection import cross_val_predict
+        y_proba_oof = cross_val_predict(pipe, X_train, y_train,
+                                        cv=cv_strategy, method='predict_proba', n_jobs=-1)[:, 1]
+        y_pred_oof = (y_proba_oof >= th).astype(int)
+
+        from sklearn.metrics import f1_score, recall_score
+        f1_oof = f1_score(y_train, y_pred_oof, average='macro')
+        rR_oof = recall_score(y_train, y_pred_oof, pos_label=1)
+
+        thresholds[name] = th
+        oof_scores[name] = {'macro_f1': f1_oof, 'recall_R': rR_oof}
+
+        print(f"  Optimal threshold: {th:.3f}")
+        print(f"  OOF Macro F1: {f1_oof*100:6.2f}%")
+        print(f"  OOF Recall(R): {rR_oof*100:6.2f}%")
+
+    # ── THRESHOLD SUMMARY ────────────────────────────────────────────────────────
+    print(format_threshold_summary(thresholds, oof_scores))
+
+    # ── FINAL MODEL SELECTION & RATIONALE ───────────────────────────────────────
+    # Determine best model based on CV metrics (Macro F1 primary, Recall(R) secondary)
+    best_name = max(cv_metrics.keys(), key=lambda n: (
+        cv_metrics[n]['macro_f1'],
+        cv_metrics[n]['recall_R']  # tie-breaker
+    ))
+
+    cv_df = pd.DataFrame(cv_metrics).T.rename(columns={
+        'macro_f1': 'Macro F1',
+        'recall_R': 'Recall(R)',
+        'recall_S': 'Recall(S)',
+        'accuracy': 'Accuracy',
+        })[['Macro F1', 'Recall(R)', 'Recall(S)', 'Accuracy']]
+
+    print(format_final_selection_rationale(best_name, cv_df, thresholds, TARGET_RECALL_R))
 
     return {
-        "xgb":     (pipe_xgb,   best_configs["XGBoost"],    th_xgb),
-        "rf":      (pipe_rf,    best_configs["RandomForest"], th_rf),
-        "lgbm":    (pipe_lgbm,  best_configs["LightGBM"],    th_lgbm),
-        "stacking": (stacking,   {},                          th_ens),
+        "xgb":     (pipe_xgb,   best_configs["XGBoost"]['pipeline_params'],    thresholds["XGBoost"]),
+        "rf":      (pipe_rf,    best_configs["RandomForest"]['pipeline_params'], thresholds["RandomForest"]),
+        "lgbm":    (pipe_lgbm,  best_configs["LightGBM"]['pipeline_params'],    thresholds["LightGBM"]),
+        "stacking": (stacking,   {},                          thresholds["Stacking"]),
     }
