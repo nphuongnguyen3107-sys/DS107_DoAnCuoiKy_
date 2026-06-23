@@ -532,15 +532,15 @@ def generate_local_chat_reply(message, outcome, probability, top_features):
                "- 📂 **Thông tin tập dữ liệu (Dataset):**\n" \
                "  * **Số lượng:** **2,404 mẫu** hệ gen vi khuẩn.\n" \
                "  * **Đặc trưng ban đầu:** 310 đặc trưng (210 đặc trưng gen kháng thuốc AMR và 100 đặc trưng liên tục đại diện cho mật độ k-mer nền).\n" \
-               "  * **Đặc trưng rút gọn (sau RFE):** Rút gọn xuống **89 đặc trưng gen/k-mer quan trọng nhất** giúp tối ưu hóa chi phí giải trình tự gen.\n" \
+               "  * **Đặc trưng rút gọn (sau RFE):** Rút gọn xuống **84 đặc trưng gen/k-mer quan trọng nhất** giúp tối ưu hóa chi phí giải trình tự gen.\n" \
                "- 🤖 **Thuật toán học máy đề xuất:**\n" \
                "  * **Mô hình XGBoost (Đề xuất):** Sử dụng thuật toán tăng cường gradient cây quyết định (XGBoost) được tối ưu hóa hyperparameter bằng Optuna, kết hợp kỹ thuật giảm chiều RFE và cân bằng dữ liệu SMOTE để tối đa hóa độ ổn định dự đoán.\n" \
                "- 📈 **Chỉ số đánh giá mô hình (Performance Metrics):**\n" \
-               "  * **Độ chính xác (Accuracy):** **80.00%** trên tập test.\n" \
-               "  * **ROC-AUC:** **89.90%** và **PR-AUC:** **88.60%**.\n" \
-               "  * **Recall lớp Kháng thuốc (Resistant):** Đạt **81.89%** nhờ kỹ thuật cân bằng dữ liệu **SMOTE** (tránh bỏ sót bệnh nhân kháng thuốc trong chẩn đoán lâm sàng).\n" \
+               "  * **Độ chính xác (Accuracy):** **81.00%** trên tập test.\n" \
+               "  * **ROC-AUC:** **90.09%** và **PR-AUC:** **88.80%**.\n" \
+               "  * **Recall lớp Kháng thuốc (Resistant):** Đạt **79.85%** (XGBoost) và **81.89%** (Stacking) nhờ kỹ thuật cân bằng dữ liệu **SMOTE** (tránh bỏ sót bệnh nhân kháng thuốc trong chẩn đoán lâm sàng).\n" \
                "- ⚙️ **Ngưỡng quyết định (Decision Threshold):**\n" \
-               "  * Được tối ưu ở mức **0.523** (lấy từ Nested Cross-Validation) giúp cân bằng hoàn hảo giữa độ chính xác và độ nhạy lâm sàng."
+               "  * Được tối ưu ở mức **0.479** cho XGBoost và **0.523** cho Stacking giúp cân bằng hoàn hảo giữa độ chính xác và độ nhạy lâm sàng."
 
     # 3e. Câu hỏi tình huống lâm sàng chuyên sâu (MDR, MIC, Mang thai + Dị ứng + Kháng parC, Thăt bại Carbapenem)
     if any(k in msg_lower for k in ["đồng thời", "cả hai", "phối hợp gen", "đa kháng", "mdr", "bơm đẩy đi kèm", "bơm đẩy kết hợp", "ước lượng mic", "dải mic", "xét nghiệm bổ sung", "kiểm chứng", "cấy máu", "mang thai bị dị ứng", "thất bại carbapenem", "không giảm sốt", "72h"]):
@@ -659,14 +659,21 @@ def generate_ai_report(outcome, probability, top_features, threshold):
             "contents": [{"parts": [{"text": prompt}]}]
         }
         headers = {"Content-Type": "application/json"}
-        try:
-            req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
-            with urllib.request.urlopen(req, timeout=30) as response:
-                res_data = json.loads(response.read().decode('utf-8'))
-                print(f"✅ [AI Report] Gọi Gemini ({gemini_model}) thành công!")
-                return res_data['candidates'][0]['content']['parts'][0]['text']
-        except Exception as e:
-            print(f"❌ [AI Report] Lỗi gọi Gemini API: {e}")
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    res_data = json.loads(response.read().decode('utf-8'))
+                    print(f"✅ [AI Report] Gọi Gemini ({gemini_model}) thành công!")
+                    return res_data['candidates'][0]['content']['parts'][0]['text']
+            except Exception as e:
+                print(f"⚠️ [AI Report] Thử lần {attempt+1} thất bại: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(1.5)
+                else:
+                    print(f"❌ [AI Report] Lỗi gọi Gemini API sau {max_retries} lần thử: {e}")
 
     # Fallback về Local Expert System nếu API key trống hoặc lỗi
     print("⚠️ [AI Report] Không kết nối được dịch vụ Gemini trực tuyến. Tự động chuyển về Hệ chuyên gia cục bộ (Local).")
@@ -707,15 +714,22 @@ def call_ai_chat(system_instruction, history, user_message):
     }
     headers = {"Content-Type": "application/json"}
     
-    try:
-        req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
-        with urllib.request.urlopen(req, timeout=30) as response:
-            res_data = json.loads(response.read().decode('utf-8'))
-            print(f"✅ [AI Chat] Gọi Gemini ({gemini_model}) thành công!")
-            return res_data['candidates'][0]['content']['parts'][0]['text']
-    except Exception as e:
-        print(f"❌ [AI Chat] Lỗi gọi Gemini Chat API: {e}")
-        raise e
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers, method='POST')
+            with urllib.request.urlopen(req, timeout=30) as response:
+                res_data = json.loads(response.read().decode('utf-8'))
+                print(f"✅ [AI Chat] Gọi Gemini ({gemini_model}) thành công!")
+                return res_data['candidates'][0]['content']['parts'][0]['text']
+        except Exception as e:
+            print(f"⚠️ [AI Chat] Thử lần {attempt+1} thất bại: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(1.5)
+            else:
+                print(f"❌ [AI Chat] Lỗi gọi Gemini Chat API sau {max_retries} lần thử: {e}")
+                raise e
 
 app = Flask(__name__)
 
