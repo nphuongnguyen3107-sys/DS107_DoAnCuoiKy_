@@ -70,7 +70,7 @@ Hệ thống được thiết kế khép kín nhằm chống rò rỉ dữ liệ
 
 1. **Median Imputer**: Xử lý dữ liệu k-mer khuyết bằng phương pháp điền trung vị.
 2. **Variance Threshold**: Loại bỏ các đặc trưng tĩnh hoặc biến động cực thấp ($< 0.01$).
-3. **RFE (Recursive Feature Elimination)**: Lọc giảm chiều đặc trưng, chỉ giữ lại **93 đặc trưng gen/k-mer quan trọng nhất** có khả năng phân biệt cao nhằm tối ưu chi phí giải trình tự gen.
+3. **RFE (Recursive Feature Elimination)**: Lọc giảm chiều đặc trưng, chỉ giữ lại **84 đặc trưng gen/k-mer quan trọng nhất** có khả năng phân biệt cao nhằm tối ưu chi phí giải trình tự gen.
 4. **SMOTE (Synthetic Minority Over-sampling Technique)**: Cân bằng tỉ lệ mẫu kháng thuốc (thiểu số), giúp tăng mạnh Recall lớp kháng từ **55.63% lên 80.82%**.
 5. **XGBoost Classifier**: Mô hình phân loại tối ưu sau khi chạy tìm kiếm siêu tham số bằng Optuna qua 50 thử nghiệm.
 6. **Decision Threshold (0.521)**: Ngưỡng ra quyết định được tinh chỉnh out-of-fold nhằm đảm bảo độ nhạy lâm sàng tối thiểu (Recall lớp kháng $\ge 80\%$).
